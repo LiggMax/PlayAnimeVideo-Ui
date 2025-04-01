@@ -1,10 +1,12 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import {searchService} from "@/api/Search.js";
 
 const searchQuery = ref('')
-const searchResults = ref([])
+const searchResults = ref(null)
 const loading = ref(false)
+const activeTabName = ref('0')
 
 const handleSearch = async () => {
   if (!searchQuery.value.trim()) {
@@ -14,27 +16,18 @@ const handleSearch = async () => {
 
   loading.value = true
   try {
-    // 这里模拟API调用，实际项目中替换为真实API
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    searchResults.value = [
-      {
-        id: 1,
-        title: '示例动漫1',
-        cover: 'https://via.placeholder.com/200x300',
-        description: '这是一个示例动漫描述'
-      },
-      {
-        id: 2,
-        title: '示例动漫2',
-        cover: 'https://via.placeholder.com/200x300',
-        description: '这是另一个示例动漫描述'
-      }
-    ]
+    const results = await searchService(searchQuery.value)
+    searchResults.value = results.data
   } catch (error) {
     ElMessage.error('搜索失败，请稍后重试')
+    console.error(error)
   } finally {
     loading.value = false
   }
+}
+
+const openEpisode = (url) => {
+  window.open(url, '_blank')
 }
 </script>
 
@@ -59,31 +52,72 @@ const handleSearch = async () => {
 
     <el-row v-if="loading" class="mb-4">
       <el-col :span="24" class="text-center">
-        <el-skeleton :rows="3" animated />
+        <el-skeleton :rows="6" animated />
       </el-col>
     </el-row>
 
-    <el-row v-else-if="searchResults.length > 0">
-      <el-col 
-        v-for="item in searchResults" 
-        :key="item.id" 
-        :xs="24" 
-        :sm="12" 
-        :md="8" 
-        :lg="6"
-        class="mb-4"
-      >
-        <el-card class="anime-card" :body-style="{ padding: '0px' }">
-          <img :src="item.cover" class="anime-cover">
-          <div class="anime-info">
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.description }}</p>
+    <template v-else-if="searchResults">
+      <!-- 动漫详情卡片 -->
+      <el-card class="anime-detail-card mb-4">
+        <div class="anime-detail">
+          <div class="anime-cover-container">
+            <img :src="searchResults.cover" class="anime-cover" alt="封面">
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div class="anime-info">
+            <h2 class="anime-title">{{ searchResults.title }}</h2>
+            
+            <div class="anime-categories mb-2">
+              <el-tag 
+                v-for="(category, index) in searchResults.categories" 
+                :key="index"
+                class="category-tag"
+                type="info"
+                effect="plain"
+              >
+                {{ category }}
+              </el-tag>
+            </div>
+            
+            <div class="anime-summary mb-4">
+              <p>{{ searchResults.summary }}</p>
+            </div>
+          </div>
+        </div>
+      </el-card>
+      
+      <!-- 剧集列表 -->
+      <el-card class="episodes-card mb-4">
+        <template #header>
+          <div class="episodes-header">
+            <h3>剧集列表</h3>
+          </div>
+        </template>
+        
+        <el-tabs v-model="activeTabName" class="episodes-tabs">
+          <el-tab-pane 
+            v-for="(source, index) in searchResults.episodes" 
+            :key="index"
+            :label="source.name"
+            :name="String(index)"
+          >
+            <div class="episodes-grid">
+              <el-button
+                v-for="episode in source.episodes"
+                :key="episode.name"
+                class="episode-button"
+                type="primary"
+                plain
+                @click="openEpisode(episode.url)"
+              >
+                {{ episode.name }}
+              </el-button>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
+    </template>
 
-    <el-row v-else-if="searchQuery" class="mb-4">
+    <el-row v-else-if="searchQuery && !loading" class="mb-4">
       <el-col :span="24" class="text-center">
         <el-empty description="未找到相关动漫" />
       </el-col>
@@ -102,6 +136,10 @@ const handleSearch = async () => {
   padding: 2rem;
 }
 
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
 .mb-4 {
   margin-bottom: 1.5rem;
 }
@@ -115,37 +153,88 @@ const handleSearch = async () => {
   margin: 0 auto;
 }
 
-.anime-card {
-  margin-bottom: 1rem;
-  transition: transform 0.3s;
+/* 动漫详情卡片样式 */
+.anime-detail-card {
+  margin-bottom: 2rem;
 }
 
-.anime-card:hover {
-  transform: translateY(-5px);
+.anime-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .anime-detail {
+    flex-direction: row;
+  }
+}
+
+.anime-cover-container {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 200px;
+  margin: 0 auto 1rem auto;
+}
+
+@media (min-width: 768px) {
+  .anime-cover-container {
+    margin: 0 2rem 0 0;
+  }
 }
 
 .anime-cover {
   width: 100%;
-  height: 300px;
-  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .anime-info {
-  padding: 1rem;
+  flex: 1;
 }
 
-.anime-info h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
+.anime-title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #303133;
 }
 
-.anime-info p {
+.category-tag {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.anime-summary {
+  color: #606266;
+  line-height: 1.6;
+}
+
+/* 剧集列表样式 */
+.episodes-card {
+  margin-bottom: 2rem;
+}
+
+.episodes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.episodes-header h3 {
   margin: 0;
-  font-size: 0.9rem;
-  color: #666;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: #303133;
+}
+
+.episodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.episode-button {
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   overflow: hidden;
 }
 </style> 
