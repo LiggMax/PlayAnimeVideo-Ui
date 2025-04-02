@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import {searchService} from "@/api/Anime.js";
 
 const searchQuery = ref('')
 const searchResults = ref([])
@@ -15,21 +16,8 @@ const handleSearch = async () => {
   loading.value = true
   try {
     // 这里模拟API调用，实际项目中替换为真实API
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    searchResults.value = [
-      {
-        id: 1,
-        title: '示例动漫1',
-        cover: 'https://via.placeholder.com/200x300',
-        description: '这是一个示例动漫描述'
-      },
-      {
-        id: 2,
-        title: '示例动漫2',
-        cover: 'https://via.placeholder.com/200x300',
-        description: '这是另一个示例动漫描述'
-      }
-    ]
+    const response =  await searchService(searchQuery.value)
+      searchResults.value = response.data
   } catch (error) {
     ElMessage.error('搜索失败，请稍后重试')
   } finally {
