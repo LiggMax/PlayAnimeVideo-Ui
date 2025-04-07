@@ -25,7 +25,6 @@ const handleSearch = async () => {
       searchResults.value = []
     }
   } catch (error) {
-    console.error('搜索失败:', error)
     ElMessage.error('搜索失败，请稍后重试')
     searchResults.value = []
   } finally {

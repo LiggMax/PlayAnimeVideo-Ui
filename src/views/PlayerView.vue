@@ -14,7 +14,7 @@ const fetchVideoUrl = async () => {
   const url = route.query.url
   if (!url) {
     ElMessage.error('参数错误')
-    router.push('/')
+    await router.push('/')
     return
   }
 
