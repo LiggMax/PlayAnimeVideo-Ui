@@ -3,6 +3,8 @@ import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
 import {getCharacterService, getDateService} from "@/api/Bangumi.js"
+// 导入播放图标
+import PlayIcon from '@/assets/icon/Play.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -190,8 +192,16 @@ const calculateBarHeight = (score) => {
               <h3>简介</h3>
               <p>{{ animeInfo.summary }}</p>
             </div>
-            <div class="">
-              <el-button @click="playEpisode(animeInfo.id)">观看</el-button>
+            <div class="play-button-container">
+              <el-button 
+                @click="playEpisode(animeInfo.id)" 
+                type="primary" 
+                class="play-button"
+                size="large"
+              >
+                <img src="@/assets/icon/Play.svg" class="play-icon" alt="播放" />
+                播放
+              </el-button>
             </div>
           </div>
         </div>
@@ -570,5 +580,42 @@ const calculateBarHeight = (score) => {
   display: flex;
   justify-content: center;
   margin-top: 1.5rem;
+}
+
+/* 播放按钮样式 */
+.play-button-container {
+  margin-top: 1.5rem;
+}
+
+.play-button {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 12px 36px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #409EFF, #3080E8);
+  border: none;
+  box-shadow: 0 4px 15px rgba(64, 158, 255, 0.35);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.play-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(64, 158, 255, 0.5);
+  background: linear-gradient(135deg, #53a8ff, #409EFF);
+}
+
+.play-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(64, 158, 255, 0.4);
+}
+
+.play-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
 }
 </style>
