@@ -59,10 +59,13 @@ const fetchCharacters = async (id) => {
 }
 
 const playEpisode = (id) => {
-  // TODO: 实现播放功能
   router.push({
     name: 'player',
-    query: { id }
+    query: { 
+      id: id,  // 视频ID
+      animeId: animeInfo.value.id, // 番剧ID，用于获取剧集列表
+      title: animeInfo.value.name_cn || animeInfo.value.name // 番剧标题
+    }
   })
 }
 

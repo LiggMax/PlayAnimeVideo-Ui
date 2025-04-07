@@ -20,3 +20,17 @@ export const getDateService = (id) =>{
 export const getCharacterService = (id) =>{
     return request.get("/bangumi/character?id=" + id)
 }
+
+/**
+ * 获取剧集列表
+ */
+export const getEpisodeListService = (id) =>{
+    return request.get("/bangumi/episode?id=" + id)
+}
+
+/**
+ * 获取视频播放地址
+ */
+export const getVideoUrlService = (id) =>{
+    return request.get("/bangumi/video?id=" + id)
+}
