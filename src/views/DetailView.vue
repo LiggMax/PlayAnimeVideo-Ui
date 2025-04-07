@@ -10,6 +10,16 @@ const loading = ref(true)
 const animeInfo = ref(null)
 const characters = ref([])
 const characterLoading = ref(false)
+const showAllCharacters = ref(false)
+
+// 计算显示角色信息
+const displayedCharacters = computed(() => {
+  if (showAllCharacters.value) {
+    return characters.value;
+  } else {
+    return characters.value.slice(0, 6);
+  }
+});
 
 const fetchAnimeDetail = async () => {
   const id = route.query.id
@@ -39,10 +49,8 @@ const fetchCharacters = async (id) => {
   try {
     characterLoading.value = true
     const response = await getCharacterService(id)
-      // 筛选主要角色，最多显示8个
     characters.value = response.data
-          .filter(char => char.relation === '主角' || char.relation === '配角')
-          .slice(0, 8)
+        .filter(char => char.relation === '主角' || char.relation === '配角')
   } finally {
     characterLoading.value = false
   }
@@ -56,11 +64,14 @@ const playEpisode = (id) => {
   })
 }
 
+const toggleCharactersDisplay = () => {
+  showAllCharacters.value = !showAllCharacters.value;
+}
+
 onMounted(() => {
   fetchAnimeDetail()
 })
-
-// Calculate maximum vote count for scaling
+// 计算最大投票数
 const maxVoteCount = computed(() => {
   if (!animeInfo.value || !animeInfo.value.rating || !animeInfo.value.rating.count) {
     return 0;
@@ -69,13 +80,12 @@ const maxVoteCount = computed(() => {
   return Math.max(...counts);
 });
 
-// Function to calculate bar height based on score
 const calculateBarHeight = (score) => {
   if (!animeInfo.value || !animeInfo.value.rating || !animeInfo.value.rating.count || maxVoteCount.value === 0) {
     return 0;
   }
   const count = animeInfo.value.rating.count[score] || 0;
-  // Calculate percentage height, ensure it's at least 1% for visibility if count > 0
+  // 计算高度
   const height = (count / maxVoteCount.value) * 100;
   return count > 0 ? Math.max(height, 1) : 0;
 };
@@ -210,19 +220,36 @@ const calculateBarHeight = (score) => {
             <h2>角色信息</h2>
           </div>
         </template>
-        <div class="characters-grid">
-          <div v-for="char in characters" :key="char.id" class="character-item">
-            <div class="character-image">
-              <img :src="char.images.medium" alt="角色图片">
-            </div>
-            <div class="character-info">
-              <div class="character-name">{{ char.name }}</div>
-              <div class="character-relation">{{ char.relation }}</div>
-              <div class="character-cv" v-if="char.actors && char.actors.length > 0">
-                CV: {{ char.actors[0].name }}
+        <div class="characters-container">
+          <div v-if="characterLoading" class="text-center">
+            <el-skeleton :rows="3" animated />
+          </div>
+          <template v-else>
+            <div class="characters-grid">
+              <div v-for="char in displayedCharacters" :key="char.id" class="character-item">
+                <div class="character-image">
+                  <img :src="char.images.grid" alt="角色图片">
+                </div>
+                <div class="character-info">
+                  <div class="character-name">{{ char.name }}</div>
+                  <div class="character-relation">{{ char.relation }}</div>
+                  <div class="character-cv" v-if="char.actors && char.actors.length > 0">
+                    CV: {{ char.actors[0].name }}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+            <div v-if="characters.length > 6" class="show-more-container">
+              <el-button 
+                type="primary" 
+                plain 
+                @click="toggleCharactersDisplay"
+                :icon="showAllCharacters ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"
+              >
+                {{ showAllCharacters ? '收起' : '显示更多' }}
+              </el-button>
+            </div>
+          </template>
         </div>
       </el-card>
     </template>
@@ -443,25 +470,18 @@ const calculateBarHeight = (score) => {
 }
 
 /* 角色信息样式 */
+.characters-card {
+  background-color: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
 .characters-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
-@media (max-width: 1200px) {
-  .characters-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .characters-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
   .characters-grid {
     grid-template-columns: repeat(1, 1fr);
   }
@@ -469,26 +489,48 @@ const calculateBarHeight = (score) => {
 
 .character-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  background-color: #f8f9fa;
+  background-color: #f5f7fa;
   border-radius: 8px;
-  padding: 1rem;
-  transition: transform 0.2s;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+  color: #303133;
+  border-left: 3px solid #409EFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.character-item:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, #409EFF, #53a8ff);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .character-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(32, 107, 196, 0.15);
+  background-color: #edf1f6;
+}
+
+.character-item:hover:before {
+  opacity: 1;
 }
 
 .character-image {
-  width: 100%;
-  height: 180px;
+  width: 60px;
+  height: 60px;
   overflow: hidden;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
 .character-image img {
@@ -498,44 +540,35 @@ const calculateBarHeight = (score) => {
 }
 
 .character-info {
-  width: 100%;
+  flex-grow: 1;
 }
 
 .character-name {
   font-weight: bold;
   margin-bottom: 0.25rem;
   font-size: 1rem;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .character-relation {
   color: #409EFF;
   margin-bottom: 0.25rem;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .character-cv {
-  color: #909399;
+  color: #606266;
   font-size: 0.8rem;
 }
-</style>
 
-<script>
-// Remove or comment out getScoreColor if not used elsewhere
-/*
-const getScoreColor = (score) => {
-  const colors = {
-    1: '#F56C6C',
-    2: '#F56C6C',
-    3: '#F56C6C',
-    4: '#F56C6C',
-    5: '#E6A23C',
-    6: '#E6A23C',
-    7: '#67C23A',
-    8: '#67C23A',
-    9: '#67C23A',
-    10: '#67C23A'
-  }
-  return colors[score] || '#909399'
+.characters-container {
+  width: 100%;
 }
-*/
-</script>
+
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+</style>
