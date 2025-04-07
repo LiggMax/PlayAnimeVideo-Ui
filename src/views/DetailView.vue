@@ -1,13 +1,15 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getDateService } from "@/api/Bangumi.js"
+import {computed, onMounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {ElMessage} from 'element-plus'
+import {getCharacterService, getDateService} from "@/api/Bangumi.js"
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
 const animeInfo = ref(null)
+const characters = ref([])
+const characterLoading = ref(false)
 
 const fetchAnimeDetail = async () => {
   const id = route.query.id
@@ -20,16 +22,29 @@ const fetchAnimeDetail = async () => {
   try {
     loading.value = true
     const response = await getDateService(id)
-    if (response.code === 200 && response.data) {
       animeInfo.value = response.data
-    } else {
-      ElMessage.error('获取数据失败')
-    }
+      // 获取到详情后，加载角色信息
+      await fetchCharacters(id)
   } catch (error) {
     console.error('获取详情失败:', error)
     ElMessage.error('获取详情失败，请稍后重试')
   } finally {
     loading.value = false
+  }
+}
+
+const fetchCharacters = async (id) => {
+  if (!id) return
+  
+  try {
+    characterLoading.value = true
+    const response = await getCharacterService(id)
+      // 筛选主要角色，最多显示8个
+    characters.value = response.data
+          .filter(char => char.relation === '主角' || char.relation === '配角')
+          .slice(0, 8)
+  } finally {
+    characterLoading.value = false
   }
 }
 
@@ -184,6 +199,29 @@ const calculateBarHeight = (score) => {
           <div class="bar-container" v-for="score in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="score">
             <div class="bar" :style="{ height: calculateBarHeight(score) + '%' }"></div>
             <span class="score-label">{{ score }}</span>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 角色信息 -->
+      <el-card class="characters-card mb-4" v-if="characters.length > 0">
+        <template #header>
+          <div class="card-header">
+            <h2>角色信息</h2>
+          </div>
+        </template>
+        <div class="characters-grid">
+          <div v-for="char in characters" :key="char.id" class="character-item">
+            <div class="character-image">
+              <img :src="char.images.medium" alt="角色图片">
+            </div>
+            <div class="character-info">
+              <div class="character-name">{{ char.name }}</div>
+              <div class="character-relation">{{ char.relation }}</div>
+              <div class="character-cv" v-if="char.actors && char.actors.length > 0">
+                CV: {{ char.actors[0].name }}
+              </div>
+            </div>
           </div>
         </div>
       </el-card>
@@ -402,6 +440,82 @@ const calculateBarHeight = (score) => {
   bottom: 0;
   font-size: 0.8rem;
   color: #606266;
+}
+
+/* 角色信息样式 */
+.characters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .characters-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .characters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .characters-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.character-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: transform 0.2s;
+}
+
+.character-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.character-image {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.character-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.character-info {
+  width: 100%;
+}
+
+.character-name {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.character-relation {
+  color: #409EFF;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.character-cv {
+  color: #909399;
+  font-size: 0.8rem;
 }
 </style>
 
