@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { searchService } from "@/api/Anime.js";
+import { searchService } from "@/api/Bangumi.js";
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -19,7 +19,7 @@ const handleSearch = async () => {
   try {
     const response = await searchService(searchQuery.value)
     if (response.code === 200 && response.data) {
-      searchResults.value = response.data
+      searchResults.value = response.data.list || []
     } else {
       ElMessage.error('获取数据失败：' + response.message)
       searchResults.value = []
@@ -32,10 +32,10 @@ const handleSearch = async () => {
   }
 }
 
-const openDetail = (url) => {
+const openDetail = (id) => {
   router.push({
     name: 'detail',
-    query: { url }
+    query: { id }
   })
 }
 </script>
@@ -82,33 +82,35 @@ const openDetail = (url) => {
               shadow="hover"
             >
               <div class="anime-content">
-                <div class="anime-cover-container" @click="openDetail(item.detailUrl)">
-                  <img :src="item.cover" class="anime-cover" alt="封面">
+                <div class="anime-cover-container" @click="openDetail(item.id)">
+                  <img :src="item.images.large" class="anime-cover" alt="封面">
                 </div>
                 <div class="anime-info">
-                  <h3 class="anime-title" @click="openDetail(item.detailUrl)">{{ item.title }}</h3>
-                  
-                  <!-- 分类标签 -->
-                  <div class="anime-categories" v-if="item.categories && item.categories.length">
-                    <el-tag 
-                      v-for="(category, index) in item.categories" 
-                      :key="index"
-                      size="small"
-                      class="category-tag"
-                      effect="plain"
-                    >
-                      {{ category }}
-                    </el-tag>
-                  </div>
+                  <h3 class="anime-title" @click="openDetail(item.id)">
+                    {{ item.name_cn || item.name }}
+                  </h3>
                   
                   <!-- 元数据信息 -->
                   <div class="meta-info">
-                    <span v-if="item.year" class="year">
-                      <i class="el-icon-calendar"></i> {{ item.year }}
+                    <span v-if="item.eps_count" class="episodes">
+                      <i class="el-icon-video-camera"></i> {{ item.eps_count }}集
                     </span>
-                    <span v-if="item.area" class="area">
-                      <i class="el-icon-location"></i> {{ item.area }}
+                    <span v-if="item.air_date" class="air-date">
+                      <i class="el-icon-date"></i> {{ item.air_date }}
                     </span>
+                  </div>
+                  
+                  <!-- 收藏信息 -->
+                  <div class="collection-info" v-if="item.collection">
+                    <el-tag size="small" type="success">
+                      想看: {{ item.collection.wish }}
+                    </el-tag>
+                    <el-tag size="small" type="primary">
+                      在看: {{ item.collection.doing }}
+                    </el-tag>
+                    <el-tag size="small" type="warning">
+                      看过: {{ item.collection.collect }}
+                    </el-tag>
                   </div>
                   
                   <!-- 简介 -->
@@ -119,9 +121,9 @@ const openDetail = (url) => {
                     <el-button 
                       type="primary" 
                       size="small"
-                      @click="openDetail(item.detailUrl)"
+                      @click="openDetail(item.id)"
                     >
-                      观看
+                      查看详情
                     </el-button>
                   </div>
                 </div>
@@ -262,6 +264,26 @@ const openDetail = (url) => {
 
 .anime-actions {
   margin-top: auto;
+}
+
+.collection-info {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.collection-info .el-tag {
+  margin-right: 0.25rem;
+}
+
+.episodes, .air-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.episodes i, .air-date i {
+  font-size: 1rem;
 }
 
 @media (max-width: 768px) {

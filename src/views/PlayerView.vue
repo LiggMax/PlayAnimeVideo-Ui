@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
-import { getVideoUrlService } from "@/api/Anime.js"
+// import { getVideoUrlService } from "@/api/Bangumi.js"
 
 const route = useRoute()
 const router = useRouter()
@@ -11,8 +11,8 @@ const title = ref('')
 const loading = ref(true)
 
 const fetchVideoUrl = async () => {
-  const url = route.query.url
-  if (!url) {
+  const id = route.query.id
+  if (!id) {
     ElMessage.error('参数错误')
     await router.push('/')
     return
@@ -29,7 +29,6 @@ const fetchVideoUrl = async () => {
       ElMessage.error('获取视频链接失败')
     }
   } catch (error) {
-    console.error('获取视频链接失败:', error)
     ElMessage.error('获取视频链接失败，请稍后重试')
   } finally {
     loading.value = false
